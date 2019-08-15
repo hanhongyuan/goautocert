@@ -212,12 +212,9 @@ type Handler interface {
 // HTTP任务
 type HTTPHandler struct{}
 
-// http任务执行时间不超过300秒
-const HttpExecTimeout = 300
-
 func (h *HTTPHandler) Run(taskModel models.Task, taskUniqueId int64) (result string, err error) {
-	if taskModel.Timeout <= 0 || taskModel.Timeout > HttpExecTimeout {
-		taskModel.Timeout = HttpExecTimeout
+	if taskModel.Timeout <= 0 || taskModel.Timeout > models.HttpExecTimeout {
+		taskModel.Timeout = models.HttpExecTimeout
 	}
 	var resp httpclient.ResponseWrapper
 	if taskModel.HttpMethod == models.TaskHTTPMethodGet {
@@ -354,6 +351,12 @@ func createHandler(taskModel models.Task) Handler {
 		handler = new(HTTPHandler)
 	case models.TaskRPC:
 		handler = new(RPCHandler)
+	case models.TaskCertificateObtain:
+		handler = new(CertificateObtainHandler)
+	case models.TaskCertificateRenew:
+		handler = new(CertificateRenewHandler)
+	case models.TaskCertificateRevoke:
+		handler = new(CertificateRevokeHandler)
 	}
 
 	return handler
@@ -362,7 +365,7 @@ func createHandler(taskModel models.Task) Handler {
 // 任务前置操作
 func beforeExecJob(taskModel models.Task) (taskLogId int64) {
 	if taskModel.Multi == 0 && runInstance.has(taskModel.Id) {
-		createTaskLog(taskModel, models.Cancel)
+		_, _ = createTaskLog(taskModel, models.Cancel)
 		return
 	}
 	taskLogId, err := createTaskLog(taskModel, models.Running)

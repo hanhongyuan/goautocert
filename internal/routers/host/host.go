@@ -84,7 +84,7 @@ func (f HostForm) Error(ctx *macaron.Context, errs binding.Errors) {
 	}
 	json := utils.JsonResponse{}
 	content := json.CommonFailure("表单验证失败, 请检测输入")
-	ctx.Write([]byte(content))
+	_, _ = ctx.Write([]byte(content))
 }
 
 // Store 保存、修改主机信息

@@ -11,8 +11,11 @@ import (
 type TaskProtocol int8
 
 const (
-	TaskHTTP TaskProtocol = iota + 1 // HTTP协议
-	TaskRPC                          // RPC方式执行命令
+	TaskHTTP              TaskProtocol = iota + 1 // HTTP协议
+	TaskRPC                                       // RPC方式执行命令
+	TaskCertificateObtain                         // 申请证书
+	TaskCertificateRenew                          // 证书续期
+	TaskCertificateRevoke                         // 证书注销
 )
 
 type TaskLevel int8
@@ -21,6 +24,9 @@ const (
 	TaskLevelParent TaskLevel = 1 // 父任务
 	TaskLevelChild  TaskLevel = 2 // 子任务(依赖任务)
 )
+
+// http任务执行时间不超过300秒
+const HttpExecTimeout = 300
 
 type TaskDependencyStatus int8
 
@@ -45,7 +51,7 @@ type Task struct {
 	DependencyStatus TaskDependencyStatus `json:"dependency_status" xorm:"tinyint notnull default 1"`         // 依赖关系 1:强依赖 主任务执行成功, 依赖任务才会被执行 2:弱依赖
 	Spec             string               `json:"spec" xorm:"varchar(64) notnull"`                            // crontab
 	Protocol         TaskProtocol         `json:"protocol" xorm:"tinyint notnull index"`                      // 协议 1:http 2:系统命令
-	Command          string               `json:"command" xorm:"varchar(256) notnull"`                        // URL地址或shell命令
+	Command          string               `json:"command" xorm:"varchar(256) notnull"`                        // URL地址或shell命令或证书参数（json格式）
 	HttpMethod       TaskHTTPMethod       `json:"http_method" xorm:"tinyint notnull default 1"`               // http请求方法
 	Timeout          int                  `json:"timeout" xorm:"mediumint notnull default 0"`                 // 任务执行超时时间(单位秒),0不限制
 	Multi            int8                 `json:"multi" xorm:"tinyint notnull default 1"`                     // 是否允许多实例运行

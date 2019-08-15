@@ -9,6 +9,7 @@ import (
 	"github.com/go-macaron/binding"
 	"github.com/jakecoffman/cron"
 	"github.com/ouqiang/gocron/internal/models"
+	"github.com/ouqiang/gocron/internal/modules/letsencrypt"
 	"github.com/ouqiang/gocron/internal/modules/logger"
 	"github.com/ouqiang/gocron/internal/modules/utils"
 	"github.com/ouqiang/gocron/internal/routers/base"
@@ -132,8 +133,29 @@ func Store(ctx *macaron.Context, form TaskForm) string {
 		if !strings.HasPrefix(command, "http://") && !strings.HasPrefix(command, "https://") {
 			return json.CommonFailure("请输入正确的URL地址")
 		}
-		if taskModel.Timeout > 300 {
+		if taskModel.Timeout > models.HttpExecTimeout {
 			return json.CommonFailure("HTTP任务超时时间不能超过300秒")
+		}
+	} else if taskModel.Protocol == models.TaskCertificateObtain {
+		// 证书申请
+		if p, err := letsencrypt.CreateObtainParam(taskModel.Command); err != nil {
+			return json.Failure(100, err.Error())
+		} else if err = p.ValidationObtain(); err != nil {
+			return json.Failure(101, err.Error())
+		}
+	} else if taskModel.Protocol == models.TaskCertificateRenew {
+		// 证书续期
+		if p, err := letsencrypt.CreateRenewParam(taskModel.Command); err != nil {
+			return json.Failure(110, err.Error())
+		} else if err = p.ValidationRenew(); err != nil {
+			return json.Failure(111, err.Error())
+		}
+	} else if taskModel.Protocol == models.TaskCertificateRevoke {
+		// 证书注销
+		if p, err := letsencrypt.CreateRevokeParam(taskModel.Command); err != nil {
+			return json.Failure(120, err.Error())
+		} else if err = p.ValidationRevoke(); err != nil {
+			return json.Failure(121, err.Error())
 		}
 	}
 
